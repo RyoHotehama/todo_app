@@ -27,6 +27,6 @@ class CreateFoldersTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('folders');
+        Schema::dropIfExists('todos');
     }
 }
