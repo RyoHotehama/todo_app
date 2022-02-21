@@ -19,7 +19,7 @@
               </div>
             @endif
             <form
-                action="{{ route('tasks.edit', ['id' => $task->todo_id, 'task_id' => $task->id]) }}"
+                action="{{ route('tasks.edit', ['folder' => $task->todo_id, 'task' => $task->id]) }}"
                 method="POST"
             >
               @csrf
