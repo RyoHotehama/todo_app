@@ -7,80 +7,103 @@ use App\Models\Task;
 use Illuminate\Http\Request;
 use App\Http\Requests\CreateTask;
 use App\Http\Requests\EditTask;
+use Illuminate\Support\Facades\Auth;
 
 class TaskController extends Controller
 {
-    public function index(int $id)
+    public function index(Todo $folder)
     {
         // 全てのフォルダを取得する
-        $folders = Todo::all();
+        $folders = Auth::user()->folders()->get();
 
 
-        // 選ばれたフォルダを取得する
-        $current_folder = Todo::find($id);
-
-        // 選ばれたフォルダに紐づくタスクを取得する
-        // $tasks = Task::where('todo_id', $current_folder->id)->get();
-        $tasks = $current_folder->tasks()->get();
+        // 選ばれたフォルダに基づくタスクを取得する
+        // $current_folder = Todo::find($id);
+        $tasks = $folder->tasks()->get();
 
         return view('tasks/index', [
             'folders' => $folders,
-            'current_folder_id' => $id,
+            'current_folder_id' => $folder ->id,
             'tasks' => $tasks,
         ]);
     }
 
     /**
-     * GET /folders/{id}/tasks/create
+     * タスク作成フォーム
+     * @param Todo $folder
+     * @return \Illuminate\View\View
      */
-    public function showCreateForm(int $id)
+
+    public function showCreateForm(Todo $folder)
     {
         return view('tasks/create', [
-            'folder_id' => $id
+            'folder_id' => $folder->id
         ]);
     }
 
-    public function create(int $id, CreateTask $request)
+    /**
+     * タスク作成
+     * @param Todo $folder
+     * @param CreateTask $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+
+    public function create(Todo $folder, CreateTask $request)
     {
-        $current_folder = Todo::find($id);
 
         $task = new Task();
         $task->title = $request->title;
         $task->due_date = $request->due_date;
 
-        $current_folder->tasks()->save($task);
+        $folder->tasks()->save($task);
 
         return redirect()->route('tasks.index', [
-            'id' => $current_folder->id,
+            'folder' => $folder->id,
         ]);
     }
 
     /**
-     * GET /folders/{id}/tasks/{task_id}/edit
+     * タスク編集フォーム
+     * @param Todo $folder
+     * @param Task $task
+     * @return \Illuminate\View\View
      */
-    public function showEditForm(int $id, int $task_id)
+
+    public function showEditForm(Todo $folder, Task $task)
     {
-        $task = Task::find($task_id);
+        $this->checkRelation($folder, $task);
 
         return view('tasks/edit', [
             'task' => $task,
         ]);
     }
 
-    public function edit(int $id, int $task_id, EditTask $request)
-    {
-        // 1
-        $task = Task::find($task_id);
+    /**
+     * タスク編集
+     * @param Todo $folder
+     * @param Task $task
+     * @param EditTask $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
 
-        // 2
+    public function edit(Todo $folder, Task $task, EditTask $request)
+    {
+        $this->checkRelation($folder, $task);
+
         $task->title = $request->title;
         $task->status = $request->status;
         $task->due_date = $request->due_date;
         $task->save();
 
-        // 3
         return redirect()->route('tasks.index', [
-            'id' => $task->todo_id,
+            'folder' => $task->todo_id,
         ]);
+    }
+
+    private function checkRelation(Todo $folder, Task $task)
+    {
+        if ($folder->id !== $task->todo_id) {
+            abort(404);
+        }
     }
 }
